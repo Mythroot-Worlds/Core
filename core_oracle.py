@@ -5,6 +5,7 @@ import argparse,json,re
 from pathlib import Path
 from core_blackboard import new_board,add,observation
 from core_foundations import factor_snapshot
+from world_bible_layout_engine import CANON_MARKERS
 def load(p,d):
  try:return json.loads(p.read_text(encoding='utf-8')) if p.exists() else d
  except:return d
@@ -13,9 +14,15 @@ def read(p,root):
  except:return ''
 def terms(text):return sorted(set(re.findall(r'\b[A-Za-z][A-Za-z0-9_-]{3,}\b',text.lower())))
 def canonical_status(text):
+ # Checked in CANON_MARKERS order, which is priority order: LOCKED CANON is
+ # checked first so a document that mentions both a locked fact and, say,
+ # an open question elsewhere still reports its strongest canon state.
+ # Previously this checked for the pre-v1.5 term "HARD CANON", which no
+ # longer appears in active content, so every document fell through to
+ # UNSPECIFIED regardless of its actual canon status.
  u=text.upper()
- if 'HARD CANON' in u:return 'HARD_CANON'
- if 'FLEXIBLE CANON' in u:return 'FLEXIBLE_CANON'
+ for marker in CANON_MARKERS:
+  if marker in u:return marker.replace(' ','_')
  if 'INTENTIONALLY OPEN' in u or 'DELIBERATELY OPEN' in u or 'CREATOR-EXPANDABLE' in u:return 'OPEN'
  if re.search(r'\bUNKNOWN\b',u):return 'UNKNOWN'
  return 'UNSPECIFIED'
